@@ -101,19 +101,20 @@ def extract_last_boxed(text):
 
     
 def extract_solution(solution_str):
-    model_output= re.sub(r'^.*?<\|im_start\|>assistant', '<|im_start|>assistant', solution_str, flags=re.DOTALL,count = 1)
-    stop_words = ["</s>", "<|im_end|>", "<|endoftext|>"] 
+    model_output = re.sub(r'^.*?<\|im_start\|>assistant', '<|im_start|>assistant', solution_str, flags=re.DOTALL, count=1)
+    stop_words = ["</s>", "<|im_end|>", "<|endoftext|>"]
     for stop_word in stop_words:
         if stop_word in model_output:
             model_output = model_output.split(stop_word)[0].strip()
-    
+
     predict_answer = qwen_extract_answer(model_output, data_name="math")
     extract_boxed_answer = extract_last_boxed(model_output)
-    # True means the boxed answer is correct
-    if extract_boxed_answer is not None:
-        return predict_answer, True
-    else:
-        return predict_answer, False
+
+    # If the parser fails but the model did produce a boxed answer, use it directly.
+    if (predict_answer is None or str(predict_answer).strip() == "") and extract_boxed_answer is not None:
+        return extract_boxed_answer, True
+
+    return predict_answer, extract_boxed_answer is not None
 
 
 def hf_verify_with_try(gold, target):
@@ -156,6 +157,7 @@ import os
 # TODO: Might have problem in multi node ray cluster !!!!
 reward_function_type = str(os.environ.get('REWORD_FUNCTION_TYPE', "mix"))
 format_penalty_value = float(os.environ.get('FORMAT_PENALTY_VALUE', "-1"))
+reward_debug_prob = float(os.environ.get('REWARD_DEBUG_PROB', "0.05"))
 
 print(f"Reward function type: {reward_function_type}")
 print(f"Format penalty value: {format_penalty_value}")
@@ -173,23 +175,24 @@ def compute_score(solution_str, ground_truth, method='strict'):
         score: the score for the correct answer
     """
     extract_answer, is_boxed_matched = extract_solution(solution_str=solution_str)
-    
-    
+
+    extract_answer = "" if extract_answer is None else str(extract_answer)
+    ground_truth = "" if ground_truth is None else str(ground_truth)
+
     if "\\boxed" not in extract_answer:
         boxed_answer = f"\\boxed{{{extract_answer}}}"
     else:
         boxed_answer = extract_answer
-    
+
     if "\\boxed" not in ground_truth:
         boxed_ground_truth = f"\\boxed{{{ground_truth}}}"
     else:
         boxed_ground_truth = ground_truth
-        
-    
-    # target = parse(boxed_answer)    
+
+    # target = parse(boxed_answer)
     # gold = parse(boxed_ground_truth)
     correct = hf_math_equal_subprocess(gold=boxed_ground_truth, target=boxed_answer)
-    
+
     if reward_function_type == 'mix':
         if correct:
             box_match = 1.0
@@ -209,10 +212,9 @@ def compute_score(solution_str, ground_truth, method='strict'):
             box_match = format_penalty_value
     else:
         raise ValueError(f"Invalid reward function type: {reward_function_type}")
-            
 
-    if random.random() < 0.05:
-        # for 5% of the cases, print; otherwise, print nothing to accelerate the process 
+    if random.random() < reward_debug_prob:
+        # Keep this low by default; set REWARD_DEBUG_PROB=1 to print every example.
         print(f"\n[Model Response]\n{solution_str}")
         print(f"\n[Ground Truth]\n{ground_truth}")
         print(f"\n[Is Boxed Matched]\n{is_boxed_matched}")

@@ -37,6 +37,7 @@ def make_reward_function(tokenizer, num_examine):
     def arithmetic_sequence_reward_function(data: DataProto):
         from tests.e2e.envs.digit_completion.task import compute_reward
         reward_tensor = torch.zeros_like(data.batch['responses'], dtype=torch.float32)
+        correctness_tensor = torch.zeros(data.batch.batch_size[0], dtype=torch.float32, device=reward_tensor.device)
 
         for i in range(data.batch.batch_size[0]):
             data_item = data[i]  # DataProtoItem
@@ -82,8 +83,11 @@ def make_reward_function(tokenizer, num_examine):
 
             dense_reward = torch.as_tensor(dense_reward, dtype=torch.float32, device=reward_tensor.device)
             reward_tensor[i] = dense_reward * response_mask
+            # correctness is a per-sample scalar used for logging/validation
+            # here we treat the last reward (0/1) as correctness
+            correctness_tensor[i] = float(last_reward)
 
-        return reward_tensor
+        return {"reward_tensor": reward_tensor, "correctness_tensor": correctness_tensor}
 
     return arithmetic_sequence_reward_function
 
