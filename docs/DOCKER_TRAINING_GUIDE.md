@@ -310,3 +310,69 @@ Notes:
 
 - If `docker run` prints “NVIDIA Driver was not detected”, you didn’t start the container with GPU support (missing `--gpus all` or NVIDIA Container Toolkit isn’t configured).
 - If reward deps break Hydra/OmegaConf, keep `antlr4-python3-runtime==4.9.3` pinned (as in the commands above).
+
+## 10) Crystal Pipeline (recommended daily workflow)
+
+Use the checked-in scripts below for consistent behavior and power-failure recovery:
+
+- `scripts/run_metakl_training_detached.sh`
+- `scripts/send_metakl_telegram_report.sh`
+- `scripts/telegram_metakl_report.py`
+
+### 10.1) Start training with locked parameters + resilient restart
+
+From repo root:
+
+```bash
+bash scripts/run_metakl_training_detached.sh
+```
+
+This script enforces:
+
+- `trainer.total_epochs=3`
+- `data.max_prompt_length=1024`
+- `data.max_response_length=1024`
+- `actor_rollout_ref.rollout.max_num_batched_tokens=4096`
+- `trainer.resume_mode=auto`
+- `trainer.save_freq=50`
+- `trainer.default_local_dir=/ckpts/simplelr_grpo_qwen05_ctx1024_adaptive`
+- `actor_rollout_ref.actor.actor_adaptive_kl.enable=true`
+
+It also uses a persistent container with:
+
+- name: `ruth-training-run`
+- restart policy: `unless-stopped`
+
+So after host reboot/power failure, Docker restarts the container and training resumes from the latest saved checkpoint.
+
+### 10.2) Check checkpoint health quickly
+
+```bash
+docker run --rm -v simplerl_ckpts:/ckpts simple-rl:ngc-vllm bash -lc '
+ls -lah /ckpts/simplelr_grpo_qwen05_ctx1024_adaptive
+cat /ckpts/simplelr_grpo_qwen05_ctx1024_adaptive/latest_checkpointed_iteration.txt 2>/dev/null || true
+'
+```
+
+### 10.3) Send Telegram report (accuracy + KL + checkpoint status)
+
+Set credentials once in your shell profile (or an `.env` you source):
+
+```bash
+export TELEGRAM_BOT_TOKEN="<your_bot_token>"
+export TELEGRAM_CHAT_ID="<your_chat_id>"
+```
+
+Send report now:
+
+```bash
+bash scripts/send_metakl_telegram_report.sh
+```
+
+Telegram message includes:
+
+- training status and container state
+- latest step
+- accuracy proxy (`critic/score/mean`)
+- KL metrics (`actor/kl_loss`, dynamic/fixed KL coefficient)
+- checkpoint tracker + recent checkpoint folders

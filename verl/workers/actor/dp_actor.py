@@ -27,6 +27,7 @@ from verl.trainer.ppo import core_algos
 from verl.trainer.ppo.actor_kl_controller import RuleBasedActorKLController
 from verl.trainer.ppo.meta_kl_controller import MetaKLController
 from verl.workers.actor import BasePPOActor
+from verl.single_controller.base.decorator import Dispatch, register
 from verl.utils.py_functional import append_to_dict
 from verl.utils.torch_functional import logprobs_from_logits, masked_mean
 from verl.utils.ulysses import ulysses_pad_and_slice_inputs, gather_outpus_and_unpad

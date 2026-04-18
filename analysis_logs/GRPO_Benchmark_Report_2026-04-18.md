@@ -106,5 +106,51 @@ Use the following benchmark values in the next thesis update:
 - MetaKL plan docs:
   - analysis_logs/metaKL_implementation_proposal.md
 
+## 10. Operational Pipeline Update (Power-Failure Safe)
+
+To make future runs resilient and reproducible, the project now includes a fixed run pipeline:
+
+- Startup script: scripts/run_metakl_training_detached.sh
+- Telegram report scripts:
+  - scripts/send_metakl_telegram_report.sh
+  - scripts/telegram_metakl_report.py
+
+Locked runtime parameters in the new startup script:
+
+- trainer.total_epochs = 3
+- data.max_prompt_length = 1024
+- data.max_response_length = 1024
+- actor_rollout_ref.rollout.max_num_batched_tokens = 4096
+- adaptive KL = enabled (lstm)
+
+Checkpoint/restart policy in the new startup script:
+
+- trainer.save_freq = 50
+- trainer.resume_mode = auto
+- trainer.default_local_dir = /ckpts/simplelr_grpo_qwen05_ctx1024_adaptive
+- container restart policy = unless-stopped
+
+This ensures that if the machine loses power and comes back, Docker restarts the training container and the trainer resumes from latest_checkpointed_iteration.txt in the checkpoint directory.
+
+## 11. Telegram Report Fields (Requested)
+
+The Telegram report now includes:
+
+- container status and start time
+- current/latest training step
+- accuracy proxy (critic/score/mean)
+- KL metrics:
+  - actor/kl_loss
+  - actor/kl_coef_dynamic (adaptive)
+  - actor/kl_coef (fixed fallback)
+- checkpoint status:
+  - latest_checkpointed_iteration
+  - recent global_step_* checkpoints
+
+Telegram delivery requires host environment variables:
+
+- TELEGRAM_BOT_TOKEN
+- TELEGRAM_CHAT_ID
+
 ---
 Report prepared from verified run artifacts in the current workspace and Docker execution records.
