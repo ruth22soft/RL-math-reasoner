@@ -24,6 +24,8 @@ from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
 
 from verl import DataProto
 from verl.trainer.ppo import core_algos
+from verl.trainer.ppo.actor_kl_controller import RuleBasedActorKLController
+from verl.trainer.ppo.meta_kl_controller import MetaKLController
 from verl.workers.actor import BasePPOActor
 from verl.utils.py_functional import append_to_dict
 from verl.utils.torch_functional import logprobs_from_logits, masked_mean
@@ -54,6 +56,39 @@ class DataParallelPPOActor(BasePPOActor):
         self.use_ulysses_sp = self.ulysses_sequence_parallel_size > 1
 
         self.compute_entropy_from_logits = torch.compile(verl_F.entropy_from_logits, dynamic=True)
+
+        self._actor_prev_grad_norm = 0.0
+        self.kl_controller = None
+        adaptive_cfg = self.config.get('actor_adaptive_kl', None)
+        if adaptive_cfg is not None and adaptive_cfg.get('enable', False):
+            mode = adaptive_cfg.get('mode', 'lstm')
+            if mode == 'lstm':
+                actor_device = next(self.actor_module.parameters()).device
+                self.kl_controller = MetaKLController(adaptive_cfg).to(actor_device)
+                if self.actor_optimizer is not None:
+                    self.actor_optimizer.add_param_group({
+                        'params': list(self.kl_controller.parameters()),
+                        'lr': adaptive_cfg.get('lstm_lr', self.config.optim.lr),
+                    })
+            elif mode == 'rule':
+                self.kl_controller = RuleBasedActorKLController(adaptive_cfg)
+            else:
+                raise ValueError(f'Unknown actor_adaptive_kl.mode: {mode}')
+
+    def _get_reward_meta(self, data):
+        reward_meta = {}
+        if hasattr(data, 'meta_info') and data.meta_info is not None:
+            reward_meta = data.meta_info.get('reward_signals', {})
+        return reward_meta
+
+    @register(dispatch_mode=Dispatch.ONE_TO_ALL)
+    def reset_kl_controller(self):
+        if self.kl_controller is None:
+            return
+        if hasattr(self.kl_controller, 'reset_hidden'):
+            self.kl_controller.reset_hidden()
+        elif hasattr(self.kl_controller, 'reset'):
+            self.kl_controller.reset()
 
     def _forward_micro_batch(self, micro_batch, temperature) -> Tuple[torch.Tensor, torch.Tensor]:
         """
@@ -205,6 +240,7 @@ class DataParallelPPOActor(BasePPOActor):
         self.actor_module.train()
 
         temperature = data.meta_info['temperature']  # temperature must be in the data.meta_info to avoid slient error
+        reward_meta = self._get_reward_meta(data)
 
         select_keys = ['responses', 'input_ids', 'attention_mask', 'position_ids', 'old_log_probs', 'advantages']
         if self.config.use_kl_loss:
@@ -263,9 +299,22 @@ class DataParallelPPOActor(BasePPOActor):
                                                 kl_penalty=self.config.kl_loss_type)
                     kl_loss = masked_mean(kld, response_mask)
 
-                    policy_loss = policy_loss + kl_loss * self.config.kl_loss_coef
+                    if self.kl_controller is not None:
+                        state = {
+                            'kl_loss': kl_loss.detach().item(),
+                            'reward_mean': float(reward_meta.get('reward_mean', 0.0)),
+                            'reward_std': float(reward_meta.get('reward_std', 0.0)),
+                            'lagged_grad_norm': self._actor_prev_grad_norm,
+                        }
+                        beta_t = self.kl_controller(state, kl_loss)
+                        policy_loss = policy_loss + kl_loss * beta_t
+                        metrics['actor/kl_coef_dynamic'] = beta_t.detach().item()
+                        metrics['actor/kl_penalty_term'] = (beta_t * kl_loss.detach()).detach().item()
+                    else:
+                        policy_loss = policy_loss + kl_loss * self.config.kl_loss_coef
+                        metrics['actor/kl_coef'] = self.config.kl_loss_coef
+
                     metrics['actor/kl_loss'] = kl_loss.detach().item()
-                    metrics['actor/kl_coef'] = self.config.kl_loss_coef
 
                 if self.config.use_dynamic_bsz:
                     # relative to the dynamic bsz
@@ -285,5 +334,6 @@ class DataParallelPPOActor(BasePPOActor):
             grad_norm = self._optimizer_step()
             data = {'actor/grad_norm': grad_norm.detach().item()}
             append_to_dict(metrics, data)
+            self._actor_prev_grad_norm = float(grad_norm.detach().item())
         self.actor_optimizer.zero_grad()
         return metrics

@@ -131,6 +131,10 @@ class MegatronPPOActor(BasePPOActor):
         """Validate config options not implemented for Megatron backend"""
         assert config.get('ulysses_sequence_parallel_size', 1) == 1
 
+    @register(dispatch_mode=Dispatch.ONE_TO_ALL)
+    def reset_kl_controller(self):
+        return
+
     def compute_log_prob(self, data: DataProto) -> torch.Tensor:
         """Compute the log probability of the responses given input_ids, attention_mask and position_ids
 

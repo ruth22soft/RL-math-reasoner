@@ -804,6 +804,9 @@ class RayPPOTrainer(object):
         self.global_steps += 1
 
         for epoch in range(self.config.trainer.total_epochs):
+            if hasattr(self.actor_rollout_wg, 'reset_kl_controller'):
+                self.actor_rollout_wg.reset_kl_controller()
+
             for batch_dict in self.train_dataloader:
                 metrics = {}
                 timing_raw = {}
@@ -921,6 +924,13 @@ class RayPPOTrainer(object):
                             metrics.update(kl_metrics)
                         else:
                             batch.batch['token_level_rewards'] = batch.batch['token_level_scores']
+
+                        if batch.meta_info is None:
+                            batch.meta_info = {}
+                        batch.meta_info['reward_signals'] = {
+                            'reward_mean': float(batch.batch['token_level_scores'].mean().item()),
+                            'reward_std': float(batch.batch['token_level_scores'].std().item()),
+                        }
 
                         # compute advantages, executed on the driver process
                         batch = compute_advantage(batch,

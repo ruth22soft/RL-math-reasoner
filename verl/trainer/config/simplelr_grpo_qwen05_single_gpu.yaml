@@ -37,6 +37,26 @@ actor_rollout_ref:
     use_kl_loss: True
     kl_loss_coef: 0.001
     kl_loss_type: low_var_kl
+    actor_adaptive_kl:
+      enable: False
+      mode: lstm
+      init_beta: 0.001
+      min_beta: 0.0001
+      max_beta: 0.005
+      warmup_steps: 30
+      update_interval: 1
+      ema_alpha: 0.90
+      target_kl_loss: 0.003
+      up_gain: 1.08
+      down_gain: 0.94
+      state_features:
+        - kl_loss
+        - reward_mean
+        - reward_std
+        - lagged_grad_norm
+      lstm_hidden_dim: 32
+      beta_output_activation: sigmoid_scaled
+      lstm_reset_on_epoch: True
     ppo_epochs: 1
     shuffle: False
     ulysses_sequence_parallel_size: 1
