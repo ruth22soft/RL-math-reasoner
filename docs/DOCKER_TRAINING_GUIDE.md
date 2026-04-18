@@ -92,10 +92,11 @@ It is designed for:
 - outputs: `/ckpts/simplelr_grpo_qwen05_ctx1024`
 - **checkpoint saving enabled** (see “Checkpoints” below)
 
-Run it inside the container:
+Run it inside the container (recommended: use a fixed container name so monitoring is reliable):
 
 ```bash
-docker run --rm --gpus all --ipc=host --ulimit memlock=-1 --ulimit stack=67108864 \
+docker run --rm --name ruth-training-run \
+  --gpus all --ipc=host --ulimit memlock=-1 --ulimit stack=67108864 \
   -v "$PWD":/workspace/simpleRL-reason -w /workspace/simpleRL-reason \
   -v simplerl_data:/data \
   -v simplerl_hf_cache:/root/.cache/huggingface \
@@ -122,11 +123,11 @@ PYTHONUNBUFFERED=1 python -m verl.trainer.main_ppo \
 
 ### 4.2) Common overrides (optional)
 
-Run 3 epochs instead of 1:
+Epochs (the preset defaults to 3):
 
 ```bash
 # add to the python command:
-trainer.total_epochs=3
+trainer.total_epochs=1   # or 3, 5, ...
 ```
 
 Change where outputs go (new run directory):
@@ -181,8 +182,11 @@ Resuming is controlled by:
 
 - `trainer.default_local_dir` (points at the run directory)
 - `trainer.resume_mode` (set to `auto`)
+- having at least one saved checkpoint folder like `global_step_50/` inside the run directory
 
 To resume the same run, re-run training with the **same** `trainer.default_local_dir`.
+
+If there are **no** `global_step_*` folders yet, there is nothing to resume from (it will start from scratch).
 
 ## 6) Monitoring
 
@@ -213,12 +217,13 @@ watch -n 1 nvidia-smi
 
 The Telegram monitor we’ve been using runs from systemd and sends periodic status messages.
 
-- It reads **live `docker logs`** from the currently running training container (auto-detected).
-- It stores the last seen step in `/home/ai-server-02/monitor/.last_known_step`.
+- It reads **live `docker logs`** from the training container.
+- For reliability (and to avoid false positives), you should run training with a fixed container name:
+  - `--name ruth-training-run`
 
 Optional environment overrides (if you want to force behavior):
 
-- `RUTH_CONTAINER_NAME`: force a specific container name (otherwise auto-detects)
+- `RUTH_CONTAINER_NAME`: force a specific container name (default: `ruth-training-run`)
 - `RUTH_TOTAL_STEPS`: used only for the progress bar and “complete” detection (dataset-dependent)
 - `RUTH_CKPT_DIR`: checkpoint directory shown in messages (default `/ckpts`)
 
@@ -255,7 +260,53 @@ Common fields:
 - `trainer.default_local_dir` (run output directory under `/ckpts`)
 - `trainer.save_freq` (checkpoint frequency)
 
-## 8) Troubleshooting quick notes
+## 8) Auto-restart / auto-resume after power outage (recommended)
+
+If you want training to come back automatically after a reboot/power fluctuation, you need two things:
+
+1) **Periodic checkpoints enabled** (so resuming is possible). In the preset we enabled:
+   - `trainer.save_freq: 50`
+   - `trainer.resume_mode: auto`
+
+2) A **persistent container** that Docker can restart (do **not** use `--rm`) plus a restart policy.
+
+Example: start training as a persistent container that will restart only if it crashes (non-zero exit):
+
+```bash
+# If a previous container exists with the same name, remove it first
+docker rm -f ruth-training-run 2>/dev/null || true
+
+# Start a persistent training container
+docker run -d --name ruth-training-run \
+  --restart on-failure:20 \
+  --label simplerl.role=training \
+  --gpus all --ipc=host --ulimit memlock=-1 --ulimit stack=67108864 \
+  -v "$PWD":/workspace/simpleRL-reason -w /workspace/simpleRL-reason \
+  -v simplerl_data:/data \
+  -v simplerl_hf_cache:/root/.cache/huggingface \
+  -v simplerl_ckpts:/ckpts \
+  -e HF_HOME=/root/.cache/huggingface \
+  -e TRANSFORMERS_CACHE=/root/.cache/huggingface/transformers \
+  -e HF_DATASETS_CACHE=/root/.cache/huggingface/datasets \
+  -e VLLM_ATTENTION_BACKEND=XFORMERS \
+  simple-rl:ngc-vllm bash -lc '
+set -e
+python -m pip install -e . --no-deps
+python -m pip install word2number "antlr4-python3-runtime==4.9.3" "math-verify==0.6.0"
+export PYTHONPATH=/workspace/simpleRL-reason:$PYTHONPATH
+PYTHONUNBUFFERED=1 python -m verl.trainer.main_ppo \
+  --config-name simplelr_grpo_qwen05_single_gpu \
+  2>&1 | tee /ckpts/simplelr_grpo_qwen05_ctx1024/run.log
+'
+```
+
+Notes:
+
+- After a hard power loss, Docker will restart containers that have a restart policy.
+- Because `resume_mode=auto`, the trainer will look inside `trainer.default_local_dir` for the latest `global_step_*` checkpoint and continue.
+- This works only after the first checkpoint has been saved (e.g., after step 50 with `save_freq=50`).
+
+## 9) Troubleshooting quick notes
 
 - If `docker run` prints “NVIDIA Driver was not detected”, you didn’t start the container with GPU support (missing `--gpus all` or NVIDIA Container Toolkit isn’t configured).
 - If reward deps break Hydra/OmegaConf, keep `antlr4-python3-runtime==4.9.3` pinned (as in the commands above).

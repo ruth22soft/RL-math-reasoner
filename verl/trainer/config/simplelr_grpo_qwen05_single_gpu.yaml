@@ -162,8 +162,8 @@ algorithm:
     kl_coef: 0.0001
 
 trainer:
-  # 1 epoch by default (later override to 3)
-  total_epochs: 1
+  # 3 epochs by default
+  total_epochs: 3
   total_training_steps: null
   project_name: verl_examples
   experiment_name: simplelr_grpo_qwen05_ctx1024
