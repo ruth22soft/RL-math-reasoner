@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Runs adaptive-KL training in a persistent Docker container.
-# Designed for power-failure resilience via Docker restart policy + checkpoint resume.
+# Runs adaptive-KL training in a Docker container.
+# Defaults to a fresh checkpoint directory per launch so runs do not silently resume.
 
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 CONTAINER_NAME="${RUTH_CONTAINER_NAME:-ruth-training-run}"
@@ -14,11 +14,23 @@ MAX_PROMPT_LEN="${RUTH_MAX_PROMPT_LEN:-1024}"
 MAX_RESPONSE_LEN="${RUTH_MAX_RESPONSE_LEN:-1024}"
 MAX_BATCHED_TOKENS="${RUTH_MAX_BATCHED_TOKENS:-4096}"
 
-# Checkpointing for resume after restarts/outages.
-RUN_DIR="${RUTH_RUN_DIR:-/ckpts/simplelr_grpo_qwen05_ctx1024_adaptive}"
+# Checkpointing for clear, explicit run boundaries.
+RUN_BASE_DIR="${RUTH_RUN_BASE_DIR:-/ckpts/simplelr_grpo_qwen05_ctx1024_adaptive}"
+RUN_STAMP="$(date +%Y%m%d_%H%M%S)"
+RUN_DIR="${RUTH_RUN_DIR:-${RUN_BASE_DIR}/${RUN_STAMP}}"
+RESUME_CHECKPOINT="${RUTH_RESUME_CHECKPOINT:-}"
+if [[ -n "${RESUME_CHECKPOINT}" && -z "${RUTH_RUN_DIR:-}" ]]; then
+  RUN_DIR="$(dirname "${RESUME_CHECKPOINT}")"
+fi
 SAVE_FREQ="${RUTH_SAVE_FREQ:-50}"
 TEST_FREQ="${RUTH_TEST_FREQ:--1}"
-REMOVE_PREV_CKPT="${RUTH_REMOVE_PREVIOUS_CKPT:-true}"
+RESTART_POLICY="${RUTH_RESTART_POLICY:-no}"
+RESUME_MODE="${RUTH_RESUME_MODE:-never}"
+REMOVE_PREV_CKPT="${RUTH_REMOVE_PREVIOUS_CKPT:-false}"
+
+if [[ -n "${RESUME_CHECKPOINT}" ]]; then
+  RESUME_MODE="${RESUME_CHECKPOINT}"
+fi
 
 mkdir -p "${REPO_DIR}/analysis_logs"
 
@@ -27,16 +39,21 @@ cd "${REPO_DIR}"
 echo "[INFO] Repo: ${REPO_DIR}"
 echo "[INFO] Container: ${CONTAINER_NAME}"
 echo "[INFO] Run dir: ${RUN_DIR}"
+echo "[INFO] Run base dir: ${RUN_BASE_DIR}"
+if [[ -n "${RESUME_CHECKPOINT}" ]]; then
+  echo "[INFO] Resume checkpoint: ${RESUME_CHECKPOINT}"
+fi
 echo "[INFO] Epochs: ${TOTAL_EPOCHS}"
 echo "[INFO] Prompt/Response: ${MAX_PROMPT_LEN}/${MAX_RESPONSE_LEN}"
 echo "[INFO] max_num_batched_tokens: ${MAX_BATCHED_TOKENS}"
 echo "[INFO] save_freq: ${SAVE_FREQ}"
-echo "[INFO] resume_mode: auto"
+echo "[INFO] resume_mode: ${RESUME_MODE}"
+echo "[INFO] restart_policy: ${RESTART_POLICY}"
 
 docker rm -f "${CONTAINER_NAME}" >/dev/null 2>&1 || true
 
 docker run -d --name "${CONTAINER_NAME}" \
-  --restart unless-stopped \
+  --restart "${RESTART_POLICY}" \
   --label simplerl.role=training \
   --gpus all --ipc=host --ulimit memlock=-1 --ulimit stack=67108864 \
   -v "${REPO_DIR}":/workspace/simpleRL-reason -w /workspace/simpleRL-reason \
@@ -62,7 +79,7 @@ PYTHONUNBUFFERED=1 python -m verl.trainer.main_ppo \
   trainer.default_local_dir='"${RUN_DIR}"' \
   trainer.save_freq='"${SAVE_FREQ}"' \
   trainer.test_freq='"${TEST_FREQ}"' \
-  trainer.resume_mode=auto \
+  trainer.resume_mode='"${RESUME_MODE}"' \
   trainer.remove_previous_ckpt='"${REMOVE_PREV_CKPT}"' \
   actor_rollout_ref.actor.actor_adaptive_kl.enable=true \
   actor_rollout_ref.actor.actor_adaptive_kl.mode=lstm \

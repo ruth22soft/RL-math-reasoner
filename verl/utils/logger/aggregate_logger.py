@@ -15,14 +15,18 @@
 A Ray logger will receive logging info from different processes.
 """
 import numbers
+import os
 from typing import Dict
+
+
+_LOG_DECIMALS = int(os.environ.get('VERL_LOG_DECIMALS', '6'))
 
 
 def concat_dict_to_str(dict: Dict, step):
     output = [f'step:{step}']
     for k, v in dict.items():
         if isinstance(v, numbers.Number):
-            output.append(f'{k}:{v:.3f}')
+            output.append(f'{k}:{v:.{_LOG_DECIMALS}f}')
     output_str = ' - '.join(output)
     return output_str
 

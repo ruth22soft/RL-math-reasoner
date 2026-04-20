@@ -311,6 +311,8 @@ class DataParallelPPOActor(BasePPOActor):
                         policy_loss = policy_loss + kl_loss * beta_t
                         metrics['actor/kl_coef_dynamic'] = beta_t.detach().item()
                         metrics['actor/kl_penalty_term'] = (beta_t * kl_loss.detach()).detach().item()
+                        if hasattr(self.kl_controller, 'get_log_dict'):
+                            append_to_dict(metrics, self.kl_controller.get_log_dict())
                     else:
                         policy_loss = policy_loss + kl_loss * self.config.kl_loss_coef
                         metrics['actor/kl_coef'] = self.config.kl_loss_coef

@@ -707,7 +707,7 @@ class RayPPOTrainer(object):
 
 
     def _load_checkpoint(self):
-        if self.config.trainer.resume_mode == 'disable':
+        if self.config.trainer.resume_mode in ('disable', 'never', None):
             return 0
 
         # load from hdfs

@@ -16,7 +16,8 @@ Uses the resilient script with locked settings:
 - max_response_length=1024
 - max_num_batched_tokens=4096
 - adaptive KL enabled
-- auto resume from checkpoint dir
+- fresh timestamped checkpoint directory by default
+- no automatic resume unless you explicitly set `RUTH_RESUME_MODE=auto`
 
 ```bash
 bash scripts/run_metakl_training_detached.sh
@@ -68,26 +69,24 @@ docker logs ruth-training-run 2>&1 | grep -nE 'step:[0-9]+|actor/kl_coef_dynamic
 
 ## 5) Check checkpoints (power-failure recovery)
 
-Current adaptive checkpoint directory:
+Current adaptive checkpoint directory base:
 
 ```bash
-docker run --rm -v simplerl_ckpts:/ckpts simple-rl:ngc-vllm bash -lc '
-ls -lah /ckpts/simplelr_grpo_qwen05_ctx1024_adaptive
-cat /ckpts/simplelr_grpo_qwen05_ctx1024_adaptive/latest_checkpointed_iteration.txt 2>/dev/null || true
-'
+docker run --rm -v simplerl_ckpts:/ckpts simple-rl:ngc-vllm bash -lc 'ls -lah /ckpts/simplelr_grpo_qwen05_ctx1024_adaptive'
 ```
 
 Interpretation:
-- If latest_checkpointed_iteration.txt exists and has a number, resume point is tracked.
+- Each launch gets its own run directory under the base path unless you override `RUTH_RUN_DIR`.
+- If `latest_checkpointed_iteration.txt` exists and has a number, that run directory tracks its last saved step.
 - global_step_* folders are saved checkpoints.
 
 ## 6) Resume behavior
 
 The launcher already sets:
-- trainer.resume_mode=auto
-- trainer.default_local_dir=/ckpts/simplelr_grpo_qwen05_ctx1024_adaptive
+- trainer.resume_mode=never by default
+- trainer.default_local_dir=/ckpts/simplelr_grpo_qwen05_ctx1024_adaptive/<timestamp>
 
-So restarting the container with the same launcher continues from latest checkpoint.
+So restarting the container with the same launcher starts a new run directory unless you explicitly override the run dir and resume mode.
 
 ## 7) Send Telegram report
 
@@ -150,6 +149,20 @@ docker logs -f ruth-training-run
 ```bash
 docker stop ruth-training-run
 ```
+
+## 11) Resume from an exact checkpoint after power loss
+
+If you want to continue from a specific saved checkpoint, set `RUTH_RESUME_CHECKPOINT` to the exact `global_step_*` path. The launcher will reuse the parent run directory automatically unless you override `RUTH_RUN_DIR`.
+
+Example:
+
+```bash
+RUTH_RESUME_CHECKPOINT=/ckpts/simplelr_grpo_qwen05_ctx1024_adaptive/20260420_110659/global_step_1550 \
+RUTH_RESTART_POLICY=no \
+bash scripts/run_metakl_training_detached.sh
+```
+
+This is the safest option when recovering from a power failure because it resumes from one exact checkpoint instead of auto-scanning the directory.
 
 ## 10) If training does not start
 
