@@ -88,6 +88,10 @@ echo "[INFO] restart_policy: ${RESTART_POLICY}"
 
 docker rm -f "${CONTAINER_NAME}" >/dev/null 2>&1 || true
 
+# Prepare Telegram credentials (pass to monitoring)
+TELEGRAM_BOT_TOKEN="${TELEGRAM_BOT_TOKEN:-}"
+TELEGRAM_CHAT_ID="${TELEGRAM_CHAT_ID:-}"
+
 docker run -d --name "${CONTAINER_NAME}" \
   --restart "${RESTART_POLICY}" \
   --label simplerl.role=training \
@@ -100,6 +104,8 @@ docker run -d --name "${CONTAINER_NAME}" \
   -e TRANSFORMERS_CACHE=/root/.cache/huggingface/transformers \
   -e HF_DATASETS_CACHE=/root/.cache/huggingface/datasets \
   -e VLLM_ATTENTION_BACKEND=XFORMERS \
+  -e TELEGRAM_BOT_TOKEN="${TELEGRAM_BOT_TOKEN}" \
+  -e TELEGRAM_CHAT_ID="${TELEGRAM_CHAT_ID}" \
   "${IMAGE_NAME}" bash -lc '
 set -e
 python -m pip install -e . --no-deps
@@ -135,3 +141,30 @@ PYTHONUNBUFFERED=1 python -m verl.trainer.main_ppo \
 echo "[OK] Started ${CONTAINER_NAME}"
 echo "[OK] Follow logs: docker logs -f ${CONTAINER_NAME}"
 echo "[OK] Checkpoints: docker run --rm -v simplerl_ckpts:/ckpts ${IMAGE_NAME} bash -lc 'ls -lah ${RUN_DIR}'"
+
+# Start background Telegram monitoring if credentials are provided
+if [[ -n "${TELEGRAM_BOT_TOKEN}" && -n "${TELEGRAM_CHAT_ID}" ]]; then
+  echo "[OK] Starting Telegram monitoring..."
+  (
+    # Wait for container to be ready, then send initial start notification
+    sleep 10
+    TELEGRAM_BOT_TOKEN="${TELEGRAM_BOT_TOKEN}" TELEGRAM_CHAT_ID="${TELEGRAM_CHAT_ID}" \
+    python3 "${REPO_DIR}/scripts/telegram_metakl_report.py" <<< "start"
+    
+    # Monitor and report every 5 minutes while container is running
+    while docker ps --filter "name=${CONTAINER_NAME}" --quiet | grep -q .; do
+      sleep 300
+      TELEGRAM_BOT_TOKEN="${TELEGRAM_BOT_TOKEN}" TELEGRAM_CHAT_ID="${TELEGRAM_CHAT_ID}" \
+      python3 "${REPO_DIR}/scripts/telegram_metakl_report.py" || true
+    done
+    
+    # Final report when container exits
+    sleep 5
+    TELEGRAM_BOT_TOKEN="${TELEGRAM_BOT_TOKEN}" TELEGRAM_CHAT_ID="${TELEGRAM_CHAT_ID}" \
+    python3 "${REPO_DIR}/scripts/telegram_metakl_report.py" <<< "final"
+  ) &
+  BG_PID=$!
+  echo "[OK] Telegram monitor PID: ${BG_PID}"
+else
+  echo "[WARN] Telegram monitoring disabled (TELEGRAM_BOT_TOKEN or TELEGRAM_CHAT_ID not set)"
+fi
