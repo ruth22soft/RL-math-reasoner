@@ -79,6 +79,18 @@ class BaseCheckpointManager:
             except OSError as e:
                 print(f"[Rank {self.rank}] Error removing file {file}: {e}")
 
+        # Additionally, let rank 0 try to remove the whole previous checkpoint directory
+        # to avoid leaving behind non-rank files (huggingface, tokenizer, metadata).
+        if self.rank == 0:
+            try:
+                # Only remove if directory still exists and is under a checkpoints root
+                if os.path.isdir(abs_path):
+                    # remove entire directory tree
+                    shutil.rmtree(abs_path)
+                    print(f"[Rank {self.rank}] Removed previous checkpoint directory: {abs_path}")
+            except OSError as e:
+                print(f"[Rank {self.rank}] Error removing directory {abs_path}: {e}")
+
 
     @staticmethod
     def local_mkdir(path):

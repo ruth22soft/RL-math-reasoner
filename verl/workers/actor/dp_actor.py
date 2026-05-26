@@ -25,7 +25,7 @@ from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
 from verl import DataProto
 from verl.trainer.ppo import core_algos
 from verl.trainer.ppo.actor_kl_controller import RuleBasedActorKLController
-from verl.trainer.ppo.meta_kl_controller import MetaKLController
+from verl.trainer.ppo.meta_kl_controller import MetaKLController, MLPKLController
 from verl.workers.actor import BasePPOActor
 from verl.single_controller.base.decorator import Dispatch, register
 from verl.utils.py_functional import append_to_dict
@@ -70,6 +70,14 @@ class DataParallelPPOActor(BasePPOActor):
                     self.actor_optimizer.add_param_group({
                         'params': list(self.kl_controller.parameters()),
                         'lr': adaptive_cfg.get('lstm_lr', self.config.optim.lr),
+                    })
+            elif mode == 'mlp':
+                actor_device = next(self.actor_module.parameters()).device
+                self.kl_controller = MLPKLController(adaptive_cfg).to(actor_device)
+                if self.actor_optimizer is not None:
+                    self.actor_optimizer.add_param_group({
+                        'params': list(self.kl_controller.parameters()),
+                        'lr': adaptive_cfg.get('mlp_lr', adaptive_cfg.get('lstm_lr', self.config.optim.lr)),
                     })
             elif mode == 'rule':
                 self.kl_controller = RuleBasedActorKLController(adaptive_cfg)

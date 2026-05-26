@@ -55,6 +55,7 @@ actor_rollout_ref:
         - reward_std
         - lagged_grad_norm
       lstm_hidden_dim: 32
+      mlp_hidden_dim: 32
       beta_output_activation: sigmoid_scaled
       lstm_reset_on_epoch: True
       lstm_lr: 5e-6
@@ -194,7 +195,7 @@ trainer:
   # Save checkpoints periodically so runs can be resumed.
   # Set to -1 to disable saving.
   save_freq: 50
-  resume_mode: auto
+  resume_mode: never
   resume_from_path: False
   # avoid the expensive initial validation pass; final validation still runs at the end
   val_before_train: False

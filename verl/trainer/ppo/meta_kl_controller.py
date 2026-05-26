@@ -92,3 +92,61 @@ class MetaKLController(nn.Module):
             'actor_adaptive_kl/beta_smoothed': self._beta_ema,
             'actor_adaptive_kl/in_warmup': int(self._step <= self.warmup),
         }
+
+
+class MLPKLController(nn.Module):
+    STATE_FEATURES = MetaKLController.STATE_FEATURES
+
+    def __init__(self, cfg):
+        super().__init__()
+
+        assert cfg.min_beta < cfg.init_beta < cfg.max_beta, (
+            f'Required min_beta < init_beta < max_beta, got {cfg.min_beta} / {cfg.init_beta} / {cfg.max_beta}'
+        )
+
+        if hasattr(cfg, 'state_features'):
+            expected = set(self.STATE_FEATURES)
+            got = set(cfg.state_features)
+            assert got == expected, f'state_features mismatch. Expected {sorted(expected)}, got {sorted(got)}'
+
+        self.input_size = len(self.STATE_FEATURES)
+        self.hidden_size = int(getattr(cfg, 'mlp_hidden_dim', getattr(cfg, 'lstm_hidden_dim', 32)))
+        self.min_beta = float(cfg.min_beta)
+        self.max_beta = float(cfg.max_beta)
+        self.warmup = int(cfg.warmup_steps)
+        self.alpha = float(cfg.ema_alpha)
+        self._step = 0
+        self._beta_ema = float(cfg.init_beta)
+
+        self._norm = EMANormaliser(self.input_size, alpha=0.01)
+        self.net = nn.Sequential(
+            nn.Linear(self.input_size, self.hidden_size),
+            nn.Tanh(),
+            nn.Linear(self.hidden_size, 1),
+        )
+
+    def reset_hidden(self):
+        self._step = 0
+
+    def forward(self, state: dict, kl_loss: torch.Tensor) -> torch.Tensor:
+        self._step += 1
+        device = kl_loss.device
+        dtype = kl_loss.dtype
+
+        if self._step <= self.warmup:
+            return kl_loss.new_tensor(self._beta_ema)
+
+        x = torch.tensor([state.get(key, 0.0) for key in self.STATE_FEATURES], dtype=torch.float32, device=device)
+        x_norm = self._norm.to(device).normalise(x)
+        raw = self.net(x_norm.unsqueeze(0))
+        beta_t = self.min_beta + (self.max_beta - self.min_beta) * torch.sigmoid(raw)
+        beta_t = beta_t.squeeze().to(device=device, dtype=dtype)
+
+        self._beta_ema = self.alpha * self._beta_ema + (1 - self.alpha) * beta_t.detach().item()
+        return beta_t
+
+    def get_log_dict(self) -> dict:
+        return {
+            'actor_adaptive_kl/beta_smoothed': self._beta_ema,
+            'actor_adaptive_kl/in_warmup': int(self._step <= self.warmup),
+        }
