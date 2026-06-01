@@ -1,0 +1,21 @@
+Multi-Seed Campaign Results Summary
+Generated: Thu May 28 02:38:52 PM UTC 2026
+========================================
+
+Baseline Comparison:
+  5. No-KL (β=0): N/A
+  4. LSTM (reference, Apr21): 0.3387 (33.87%)
+
+Campaign Results:
+  1. fixed seed=0: N/A (25m 1s)
+  2. fixed seed=1: N/A (5m 0s)
+  3. fixed seed=2: N/A (2240m 22s)
+  4. rule seed=0: N/A (2130m 21s)
+  5. rule seed=1: N/A (5m 1s)
+  6. rule seed=2: N/A (5m 0s)
+  7. mlp seed=0: N/A (5m 1s)
+  8. mlp seed=1: N/A (5m 1s)
+  9. mlp seed=2: N/A (5m 0s)
+  10. lstm seed=0: N/A (10m 1s)
+  11. lstm seed=1: N/A (5m 1s)
+  12. lstm seed=2: N/A (5m 0s)
