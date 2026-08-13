@@ -1,0 +1,4 @@
+2026-05-26T12:55:15Z Monitor started
+2026-05-26T12:55:15Z | STATUS=exited | 4920:[36m(main_task pid=3407)[0m step:20 - val/test_score/simplelr_qwen:0.326613 - val/test_correctness/simplelr_qwen:0.326613
+2026-05-26T12:55:15Z container_not_running
+Monitor finished at 2026-05-26T12:55:15Z

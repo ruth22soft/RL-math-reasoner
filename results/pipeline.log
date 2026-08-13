@@ -1,0 +1,64 @@
+[2026-06-03 17:56:41] ===== rule_based phase =====
+[2026-06-03 17:56:41] ===== rule_based phase =====
+[2026-06-03 17:56:41] Launching rule_based (resume from latest checkpoint if present)...
+[2026-06-03 17:56:41] Launching rule_based (resume from latest checkpoint if present)...
+[INFO] Repo: /home/ai-server-02/R_projects/final_thesis/simpleRL-reason
+[INFO] Container: phase3-rule_based-s1
+[INFO] Run dir: /ckpts/simplelr_grpo_qwen05_ctx1024_adaptive/runs/rule-based/seed_3/20260523_154450
+[INFO] Run base dir: /ckpts/simplelr_grpo_qwen05_ctx1024_adaptive
+[INFO] mode: rule
+[INFO] fixed_beta: 0.001
+[INFO] Epochs: 3
+[INFO] Prompt/Response: 1024/1024
+[INFO] max_num_batched_tokens: 4096
+[INFO] rollout_n: 4
+[INFO] rollout_gpu_memory_util: 0.5
+[INFO] rollout_max_num_seqs: 32
+[INFO] save_freq: 500
+[INFO] resume_mode: auto
+[INFO] adaptive_kl_enable: true
+[INFO] adaptive_kl_mode: rule
+[INFO] restart_policy: unless-stopped
+[INFO] results_dir: /home/ai-server-02/R_projects/final_thesis/results
+[INFO] extra_args: actor_rollout_ref.actor.actor_adaptive_kl.target_kl_loss=0.08 actor_rollout_ref.actor.actor_adaptive_kl.up_gain=1.08 actor_rollout_ref.actor.actor_adaptive_kl.down_gain=0.94
+b39ca1043e3ceef56ea191186edd0f47bfff526acc9c6ede7fe391bf31fee2c6
+[OK] Started phase3-rule_based-s1
+[OK] Follow logs: docker logs -f phase3-rule_based-s1
+[OK] Checkpoints: docker run --rm -v simplerl_ckpts:/ckpts simple-rl:ngc-vllm bash -lc 'ls -lah /ckpts/simplelr_grpo_qwen05_ctx1024_adaptive/runs/rule-based/seed_3/20260523_154450'
+[OK] Result monitor PID: 2737080
+[WARN] Telegram monitoring disabled (TELEGRAM_BOT_TOKEN or TELEGRAM_CHAT_ID not set)
+[WARN] phase3-rule_based-s1 exited with code 1 before step 1566; skipping JSON save
+[OK] Saved rule_based results (exit=0, step=
+=============
+== PyTorch ==
+=============
+
+NVIDIA Release 24.05 (build 91431255)
+PyTorch Version 2.4.0a0+07cecf4
+Container image Copyright (c) 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+Copyright (c) 2014-2024 Facebook Inc.
+Copyright (c) 2011-2014 Idiap Research Institute (Ronan Collobert)
+Copyright (c) 2012-2014 Deepmind Technologies    (Koray Kavukcuoglu)
+Copyright (c) 2011-2012 NEC Laboratories America (Koray Kavukcuoglu)
+Copyright (c) 2011-2013 NYU                      (Clement Farabet)
+Copyright (c) 2006-2010 NEC Laboratories America (Ronan Collobert, Leon Bottou, Iain Melvin, Jason Weston)
+Copyright (c) 2006      Idiap Research Institute (Samy Bengio)
+Copyright (c) 2001-2004 Idiap Research Institute (Ronan Collobert, Samy Bengio, Johnny Mariethoz)
+Copyright (c) 2015      Google Inc.
+Copyright (c) 2015      Yangqing Jia
+Copyright (c) 2013-2016 The Caffe contributors
+All rights reserved.
+
+Various files include modifications (c) NVIDIA CORPORATION & AFFILIATES.  All rights reserved.
+
+This container image and its contents are governed by the NVIDIA Deep Learning Container License.
+By pulling and using the container, you accept the terms and conditions of this license:
+https://developer.nvidia.com/ngc/nvidia-deep-learning-container-license
+
+WARNING: The NVIDIA Driver was not detected.  GPU functionality will not be available.
+   Use the NVIDIA Container Toolkit to start this container with GPU support; see
+   https://docs.nvidia.com/datacenter/cloud-native/ .
+
+NOTE: The SHMEM allocation limit is set to the default of 64MB.  This may be
+   insufficient for PyTorch.  NVIDIA recommends the use of the following flags:
+   docker run --gpus all --ipc=host --ulimit memlock=-1 --ulimit stack=67108864 ...)

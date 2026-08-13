@@ -1,0 +1,16 @@
+{
+  "controller": "fixed",
+  "seed": null,
+  "global_seed": null,
+  "seed_initialization": "random (no seed set)",
+  "epochs": 3,
+  "total_steps": 1566,
+  "expected_steps": 1566,
+  "final_test_score": 0.324597,
+  "final_test_correctness": 0.324597,
+  "training_time_seconds": null,
+  "completion_timestamp": "2026-05-31T00:00:00Z",
+  "checkpoint_dir": "/ckpts/simplelr_grpo_qwen05_ctx1024_adaptive/phase3_fixed_s2",
+  "status": "completed",
+  "notes": "Score recovered from phase3_fixed_s2/metakl_train.log at step 1566. phase3_fixed_s1 run aborted early; use fixed_s2 as the completed single-seed fixed-β run."
+}

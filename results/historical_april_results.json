@@ -1,0 +1,48 @@
+{
+  "description": "Older results recovered from analysis_logs/*.md (April 2026 campaign). Different environment from the June single-seed campaign: single 'ruth-training-run' container, save_freq=50, and (for the 29.5% reference) the original thesis_progress_1 setup. Same model (Qwen2.5-0.5B-Instruct) and val split (simplelr_qwen / MATH500). Recorded for the cross-environment ablation; see results/ARCHITECTURE_AND_ABLATION.md.",
+  "recovered_on": "2026-06-08",
+  "val_split": "simplelr_qwen (MATH500 test split)",
+  "metric": "val/test_score == val/test_correctness (binary correctness)",
+  "runs": [
+    {
+      "label": "older_baseline",
+      "controller": "baseline (thesis_progress_1)",
+      "final_test_score": 0.2950,
+      "epochs": null,
+      "status": "completed",
+      "source": "thesis_progress_1.pdf (referenced in GRPO_Benchmark_Report_2026-04-18.md)",
+      "notes": "Earliest reference point; different context/environment per thesis_progress_1."
+    },
+    {
+      "label": "april_fixed_kl_3epoch",
+      "controller": "fixed",
+      "kl_coef": 0.001,
+      "final_test_score": 0.3125,
+      "epochs": 3,
+      "total_steps": 1566,
+      "status": "completed",
+      "container": "ruth-training-run",
+      "started": "2026-04-16T15:30:14Z",
+      "finished": "2026-04-17T15:31:40Z",
+      "checkpoint_dir": "/ckpts/simplelr_grpo_qwen05_ctx1024",
+      "source": "GRPO_Benchmark_Report_2026-04-18.md, training_run_summary_2026-04-16.md",
+      "notes": "Fixed-KL 3-epoch benchmark. save_freq=50. ctx 1024/1024."
+    },
+    {
+      "label": "april_lstm_3epoch",
+      "controller": "lstm_based",
+      "final_test_score": 0.3387096774193548,
+      "final_test_correctness": 0.3387096774193548,
+      "epochs": 3,
+      "total_steps": 1566,
+      "status": "completed",
+      "container": "ruth-training-run",
+      "started": "2026-04-21T07:21:58Z",
+      "finished": "2026-04-22T07:10:29Z",
+      "exit_code": 0,
+      "checkpoint_dir": "/ckpts/simplelr_grpo_qwen05_ctx1024_adaptive",
+      "source": "AdaptiveKL_Benchmark_Report_2026-04-23.md, benchmark_comparison_3_epoch_vs_earlier_report_2026-04-22.md",
+      "notes": "Adaptive-KL (lstm) run that COMPLETED to step 1566 cleanly. This is the prior, fully-trained counterpart to the June lstm_based run (which OOM-stopped at step ~1527 and was re-evaluated at step 1500 -> 0.3347). The two LSTM numbers (0.3387 completed vs 0.3347 at 96%) are mutually consistent."
+    }
+  ]
+}

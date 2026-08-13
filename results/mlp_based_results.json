@@ -1,0 +1,12 @@
+{
+  "controller": "mlp_based",
+  "seed": null,
+  "global_seed": null,
+  "epochs": 3,
+  "final_test_score": 0.342742,
+  "training_time_seconds": 0,
+  "training_time_readable": "0m 0s",
+  "completion_timestamp": "2026-06-03T17:56:41.031168Z",
+  "checkpoint_dir": "/ckpts/simplelr_grpo_qwen05_ctx1024_adaptive/phase3_mlp_s1",
+  "status": "completed"
+}

@@ -1,0 +1,34 @@
+{
+  "controller": "zero_kl",
+  "seed": null,
+  "global_seed": null,
+  "seed_initialization": "random (no seed set)",
+  "epochs": 3,
+  "total_steps": 1566,
+  "expected_steps": 1569,
+  "final_test_score": 0.3246,
+  "final_test_correctness": 0.3246,
+  "training_duration_hours": 24.0,
+  "training_time_seconds": 86400,
+  "start_timestamp": "2026-05-26T15:00:00Z",
+  "completion_timestamp": "2026-05-27T15:00:00Z",
+  "checkpoint_dir": "/ckpts/simplelr_grpo_qwen05_ctx1024_adaptive/phase3_nokl_baseline",
+  "status": "completed",
+  "configuration": {
+    "n_responses_per_prompt": 4,
+    "gpu_memory_util": 0.5,
+    "max_num_seqs": 32,
+    "batch_size": 16,
+    "learning_rate": 1e-6,
+    "kl_coefficient": 0.0,
+    "kl_enabled": false,
+    "dataset": "MATH500",
+    "model": "Qwen2.5-0.5B-Instruct",
+    "dtype": "bfloat16"
+  },
+  "metrics": {
+    "val_test_score": 0.3246,
+    "val_test_correctness": 0.3246
+  },
+  "notes": "Baseline controller with no KL regularization. Random initialization (no seed). Serves as baseline for comparing adaptive KL controllers."
+}

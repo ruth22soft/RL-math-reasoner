@@ -1,0 +1,12 @@
+{
+  "controller": "rule_based",
+  "seed": null,
+  "global_seed": null,
+  "epochs": 3,
+  "final_test_score": 0.34879,
+  "training_time_seconds": 6296,
+  "training_time_readable": "104m 56s",
+  "completion_timestamp": "2026-06-05T11:31:59.126676Z",
+  "checkpoint_dir": "/ckpts/simplelr_grpo_qwen05_ctx1024_adaptive/runs/rule-based/seed_3/20260523_154450",
+  "status": "completed"
+}
