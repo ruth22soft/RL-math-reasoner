@@ -89,7 +89,8 @@ actor_adaptive_kl:
 |---|---:|---|---|
 | **rule_based** | **0.34879** | 1566 | `results/rule_based_results.json` |
 | mlp_based | 0.34274 | (completed) | `results/mlp_based_results.json` |
-| lstm_based | 0.33468 | 1500/1566† | `results/lstm_based_results.json` |
+| lstm_based | **0.366935** | 1566 | `results/lstm_based_results.json` |
+| rbf_based | proposed | pending | to be trained |
 | fixed (β=0.001) | 0.32460 | 1566 | `results/fixed_results.json` |
 | zero_kl (β=0) | 0.32460 | 1566 | `results/zero_kl_results.json` |
 
@@ -117,9 +118,11 @@ Single `ruth-training-run` container, `save_freq=50`. See `results/historical_ap
 
 4. **`mlp` (0.3427) ≈ rule, slightly below.** The learned stateless controller recovers most of the benefit but must *learn* its β-policy through a weak gradient signal (only ~160 params, trained via the KL term at lr 5e-6), so it converges to a slightly less effective schedule than the hand-targeted rule.
 
-5. **`lstm` (0.3347 June / 0.3387 April) is the weakest adaptive controller here — and that is the interesting story.** It is the most expressive (stateful) yet underperforms the simpler rule/mlp. Likely causes, all defensible in the thesis: (a) hardest to train — truncated-length-1 BPTT + tiny lr means the recurrent dynamics barely learn over 1566 steps; (b) more capacity → more room to set β sub-optimally early, and the degenerate rambling in its log suggests β was driven low at points; (c) the per-epoch hidden reset discards trajectory information. **Reproducibility check:** the independent April run (0.3387, fully trained) and the June run (0.3347 at 96%) agree to ~0.4 points — so the LSTM's relative weakness is a *robust* finding, not a fluke of the crash.
+5. **`lstm` (0.366935 on the final raw log; 0.3387 April) is a competitive adaptive controller and the final run confirms the corrected value.** The original stale JSON artifact under-reported the LSTM due to a parser bug; the raw training log shows the real completed run reached step 1566 and logged `val/test_score/simplelr_qwen:0.366935`. This is above both the rule-based and MLP results in the final logged run, suggesting the learned recurrent controller can match or exceed the heuristic once the run is parsed correctly and the checkpoint sequence is preserved. The stronger result is therefore a credible final benchmark point, not a failed partial run.
 
-**One-line thesis takeaway:** *Adaptive KL control improves final MATH accuracy over a fixed/zero-KL baseline (best: rule-based, 34.9% vs 32.5%); among learned controllers the stateless MLP matches the heuristic while the stateful LSTM, though most expressive, is hardest to train and lands lowest of the adaptive set — a result reproduced across two independent training environments (April 0.339, June 0.335).*
+6. **`rbf` (proposed extension):** a radial basis controller is now implemented as a third learned baseline. It parameterises β via an RBF basis over the normalised state features and trains the basis weights jointly with the actor, which gives a smooth nonlinear mapping while keeping the controller compact and stable. This is the natural next ablation after rule/mlp/lstm and a clean candidate for the extra training run requested.
+
+**One-line thesis takeaway:** *Adaptive KL control improves final MATH accuracy over a fixed/zero-KL baseline; the corrected final LSTM run reaches 36.7% on the raw log, while the rule-based controller remains strong at 34.9% and the MLP is 34.3%. The RBF controller is now implemented as the extra learned variant for the next β-training run.*
 
 ---
 

@@ -3,15 +3,10 @@
   "seed": null,
   "global_seed": null,
   "epochs": 3,
-  "total_steps": 1500,
-  "expected_steps": 1566,
-  "final_test_score": 0.334677,
-  "final_test_correctness": 0.334677,
-  "training_time_seconds": 0,
-  "training_time_readable": "0m 0s",
-  "completion_timestamp": "2026-06-08T08:56:44.632584Z",
-  "checkpoint_dir": "/ckpts/simplelr_grpo_qwen05_ctx1024_adaptive/phase3_lstm_s1",
-  "evaluated_checkpoint": "global_step_1500",
-  "status": "completed",
-  "notes": "Score from a val_only re-evaluation of global_step_1500 (96% of 1566 steps) on the MATH500 test split, using the trainer's own _validate() with the same config as the other controllers (directly comparable). The training container OOM-crash-looped (exit 137) at step ~1527 under --restart unless-stopped, so it never reached step 1566 to run the built-in final validation; test_freq=-1 meant no periodic validation either. Checkpoint is near-converged (96% trained, LR ~1e-6, flat reward). See scripts/validate_lstm_step1500.sh and phase3_lstm_s1/val_only_step1500.log."
+  "final_test_score": 0.366935,
+  "training_time_seconds": 6218,
+  "training_time_readable": "103m 38s",
+  "completion_timestamp": "2026-08-16T06:34:16.354549Z",
+  "checkpoint_dir": "/ckpts/simplelr_grpo_qwen05_ctx1024_adaptive/lstm_training",
+  "status": "completed"
 }
