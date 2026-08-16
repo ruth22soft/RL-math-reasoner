@@ -72,12 +72,13 @@ EOF
 
 start_training() {
   local mode="${1:-lstm}"
+  local run_dir="/ckpts/simplelr_grpo_qwen05_ctx1024_adaptive/${mode}_training"
 
   print_header "Starting LSTM Training"
   print_info "Mode: ${mode}"
   
   print_info "Container: $CONTAINER_NAME"
-  print_info "Run Dir: $RUN_DIR"
+  print_info "Run Dir: ${run_dir}"
   print_info "Epochs: 3"
   print_info "Save Freq: 500 steps"
   
@@ -107,7 +108,7 @@ start_training() {
   
   RUTH_MODE="${mode}" \
   RUTH_CONTAINER_NAME="${CONTAINER_NAME}" \
-  RUTH_RUN_DIR="${RUN_DIR}" \
+  RUTH_RUN_DIR="${run_dir}" \
   RUTH_TOTAL_EPOCHS=3 \
   RUTH_ROLLOUT_N=4 \
   RUTH_SAVE_FREQ=500 \
