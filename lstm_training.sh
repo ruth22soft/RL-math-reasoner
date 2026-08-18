@@ -84,7 +84,7 @@ start_training() {
   
   latest_checkpoint=""
   latest_checkpoint=$(docker run --rm -v simplerl_ckpts:/ckpts alpine:3.20 sh -lc '
-    RUN_DIR="/ckpts/simplelr_grpo_qwen05_ctx1024_adaptive/lstm_training"
+    RUN_DIR="'"${run_dir}"'"
     find "$RUN_DIR" -mindepth 1 -maxdepth 1 -type d -name "global_step_*" 2>/dev/null | sort -V | tail -1 || true
   ')
   

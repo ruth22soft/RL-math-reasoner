@@ -1,12 +1,12 @@
 {
-  "controller": "lstm_based",
+  "controller": "rbf_based",
   "seed": null,
   "global_seed": null,
   "epochs": 3,
   "final_test_score": 0.0,
   "training_time_seconds": 6251,
   "training_time_readable": "104m 11s",
-  "completion_timestamp": "2026-08-18T08:29:32.828196Z",
-  "checkpoint_dir": "/ckpts/simplelr_grpo_qwen05_ctx1024_adaptive/lstm_training",
+  "completion_timestamp": "2026-08-18T08:28:43.038674Z",
+  "checkpoint_dir": "/ckpts/simplelr_grpo_qwen05_ctx1024_adaptive/rbf_training",
   "status": "failed"
 }
