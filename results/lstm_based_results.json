@@ -4,9 +4,9 @@
   "global_seed": null,
   "epochs": 3,
   "final_test_score": 0.0,
-  "training_time_seconds": 6251,
-  "training_time_readable": "104m 11s",
-  "completion_timestamp": "2026-08-18T08:29:32.828196Z",
+  "training_time_seconds": 0,
+  "training_time_readable": "0m 0s",
+  "completion_timestamp": "2026-08-20T07:02:19.245207Z",
   "checkpoint_dir": "/ckpts/simplelr_grpo_qwen05_ctx1024_adaptive/lstm_training",
   "status": "failed"
 }

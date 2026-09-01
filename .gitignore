@@ -1,0 +1,7 @@
+adaptive-kl-grpo-thesis/
+results/simplelr_grpo_amharic_ctx1024/
+data/simplelr_qwen_level3to5/
+*.parquet
+*.pt
+*.safetensors
+*.log

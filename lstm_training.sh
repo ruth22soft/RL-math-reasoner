@@ -80,7 +80,7 @@ start_training() {
   print_info "Container: $CONTAINER_NAME"
   print_info "Run Dir: ${run_dir}"
   print_info "Epochs: 3"
-  print_info "Save Freq: 500 steps"
+  print_info "Save Freq: 200 steps"
   
   latest_checkpoint=""
   latest_checkpoint=$(docker run --rm -v simplerl_ckpts:/ckpts alpine:3.20 sh -lc '
@@ -88,13 +88,14 @@ start_training() {
     find "$RUN_DIR" -mindepth 1 -maxdepth 1 -type d -name "global_step_*" 2>/dev/null | sort -V | tail -1 || true
   ')
   
+  # Always remove previous checkpoints to save disk (keeps only latest per-rank files)
   if [[ -n "${latest_checkpoint}" ]]; then
     resume_mode="auto"
     resume_checkpoint="${latest_checkpoint}"
     restart_policy="no"
-    remove_previous_ckpt="false"
+    remove_previous_ckpt="true"
     print_info "Resume Mode: AUTO (continue from ${resume_checkpoint})"
-    print_info "Remove Old Checkpoints: NO (keep checkpoint history)"
+    print_info "Remove Old Checkpoints: YES"
   else
     resume_mode="never"
     resume_checkpoint=""
@@ -111,7 +112,7 @@ start_training() {
   RUTH_RUN_DIR="${run_dir}" \
   RUTH_TOTAL_EPOCHS=3 \
   RUTH_ROLLOUT_N=4 \
-  RUTH_SAVE_FREQ=500 \
+  RUTH_SAVE_FREQ=200 \
   RUTH_TEST_FREQ=-1 \
   RUTH_RESTART_POLICY="${restart_policy}" \
   RUTH_RESUME_MODE="${resume_mode}" \
