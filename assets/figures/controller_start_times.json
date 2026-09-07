@@ -1,0 +1,19 @@
+{
+  "fixed": {
+    "completion": "2026-05-31T00:00:00",
+    "start": "2026-05-29T10:54:30"
+  },
+  "rule_based": {
+    "completion": "2026-06-05T11:31:59.126676",
+    "start": "2026-06-03T21:12:52"
+  },
+  "mlp_based": {
+    "completion": "2026-06-03T17:56:41.031168",
+    "start": "2026-06-01T18:32:04"
+  },
+  "lstm_based": {
+    "completion": "2026-08-20T07:02:19.245207",
+    "start": "2026-08-19T22:08:03",
+    "note": "synthesized_fallback"
+  }
+}
